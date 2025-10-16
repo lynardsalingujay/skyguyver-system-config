@@ -1,0 +1,199 @@
+{
+  "name": "skyguyver-requestdemo-call",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "630516b6-797a-458d-87c4-4c8a118a275c",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -128,
+        48
+      ],
+      "id": "49cd8e78-cb73-4f82-a81d-6d31a0046b33",
+      "name": "Webhook",
+      "webhookId": "630516b6-797a-458d-87c4-4c8a118a275c"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.vapi.ai/call/phone",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"assistantId\": \"3b47f539-cc56-4552-9364-849612bc8509\",\n  \"phoneNumberId\": \"5c171998-3537-4d67-86a4-e5216db27ec2\",\n  \"customer\": {\n    \"number\": \"{{ $json.body.mobileNo }}\",\n    \"name\": \"{{ $json.body.firstName }}\"\n  },\n  \"metadata\": {\n    \"email\": \"{{ $json.body.email }}\",\n    \"company\": \"{{ $json.body.company }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        528,
+        48
+      ],
+      "id": "65224766-8155-4d38-9617-91dc7f266f16",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "pal5MxP9n45IXDNa",
+          "name": "twilio"
+        },
+        "httpHeaderAuth": {
+          "id": "5rhkXoV6jGPAe063",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## skyguyver.com\n\nskyguyver-requestdemo-call\n\nRequest demo modal submit form -> n8n webhook -> standardized nz phone number -> add meta data -> http request to trigger twilio outbound call\n\nin short: after client fill up form they received a call\n",
+        "height": 192,
+        "width": 1120
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -928,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "87093594-a4f1-4316-9f17-d309f07d9c19",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Triggers when form is submitted",
+        "height": 80,
+        "width": 384,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -912,
+        64
+      ],
+      "id": "4db790b3-481b-4719-8cec-dd803e2277a5",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Triggers when call completes",
+        "height": 80,
+        "width": 304,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        320
+      ],
+      "id": "89f86b75-9096-4f20-9785-9c3e1f17ec5b",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the mobile number from the input\nlet mobileNo = $input.item.json.body.mobileNo;\n\n// Function to clean and standardize NZ phone number\nfunction standardizeNZPhone(phone) {\n    if (!phone) return null;\n    \n    // Remove all spaces, hyphens, parentheses, and other non-digit characters\n    let cleaned = phone.replace(/[\\s\\-\\(\\)\\.]/g, '');\n    \n    // Remove any leading + or 00\n    cleaned = cleaned.replace(/^(\\+|00)/, '');\n    \n    // Handle different NZ phone number formats\n    if (cleaned.startsWith('64')) {\n        // Already has country code (64...)\n        return '+' + cleaned;\n    } else if (cleaned.startsWith('0')) {\n        // NZ format starting with 0 (021, 027, 09, 03, etc.)\n        // Remove leading 0 and add +64\n        return '+64' + cleaned.substring(1);\n    } else if (cleaned.length >= 8 && cleaned.length <= 10) {\n        // Assume it's NZ number without leading 0\n        return '+64' + cleaned;\n    }\n    \n    // If format is unclear, return the cleaned version with +64\n    return '+64' + cleaned;\n}\n\n// Standardize the mobile number\n$input.item.json.body.mobileNo = standardizeNZPhone(mobileNo);\n\n// Return the modified item\nreturn $input.item.json;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        48
+      ],
+      "id": "b42e91f4-2a99-4cfa-bc93-e0f2faea6fba",
+      "name": "Standardize Phone"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e45c6096-3679-4734-8f97-464a2fc00e48",
+              "name": "body.firstName",
+              "value": "={{ $json.body.firstName }}",
+              "type": "string"
+            },
+            {
+              "id": "3ca5f2cb-07d4-4bff-8faf-3e373009dfa9",
+              "name": "body.email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "4a9b1e35-edf6-4579-ad32-96cb0748d581",
+              "name": "body.company",
+              "value": "={{ $json.body.company }}",
+              "type": "string"
+            },
+            {
+              "id": "14a60f44-3517-4732-94ed-b2c358c815d1",
+              "name": "body.mobileNo",
+              "value": "={{ $json.body.mobileNo }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        288,
+        48
+      ],
+      "id": "319ef197-99c3-4ca6-a8a8-7743ba47599a",
+      "name": "Store Customer Data"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Standardize Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Standardize Phone": {
+      "main": [
+        [
+          {
+            "node": "Store Customer Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Customer Data": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bf4306a5-d1b8-4138-8204-6dea7b9b04b2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f4361969a13dbab2e06d83ba0d3684bbf2c95f94a2f90b2b5950c3017a6f6da7"
+  },
+  "id": "9GwTACZPWiQTF1Ir",
+  "tags": []
+}
