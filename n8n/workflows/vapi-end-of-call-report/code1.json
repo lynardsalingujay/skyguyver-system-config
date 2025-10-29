@@ -1,0 +1,80 @@
+// n8n Code node (JavaScript)
+
+// Handle test-mode wrapper (array)
+const root = Array.isArray($json) ? $json[0] : $json;
+
+// Extract message payload
+const msg = root?.body?.message;
+if (!msg) {
+  throw new Error('Missing body.message in incoming payload');
+}
+
+// Pull key objects
+const call = msg.call ?? {};
+const phoneNumber = msg.phoneNumber ?? {};
+const customer = msg.customer ?? {};
+const assistant = msg.assistant ?? {};
+
+// --- Convert UTC datetime to New Zealand time ---
+function toNZTime(utcString) {
+  if (!utcString) return null;
+  try {
+    const date = new Date(utcString);
+    // format with numeric precision for ISO-like style
+    const options = {
+      timeZone: 'Pacific/Auckland',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    };
+    // output as readable local string (e.g., 2025-10-27 22:02:05)
+    const parts = new Intl.DateTimeFormat('en-NZ', options)
+      .formatToParts(date)
+      .reduce((acc, part) => {
+        if (part.type !== 'literal') acc[part.type] = part.value;
+        return acc;
+      }, {});
+    return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+  } catch (e) {
+    return utcString; // fallback to raw if conversion fails
+  }
+}
+
+// Extract timing data
+const startedAtUTC = msg.startedAt ?? null;
+const endedAtUTC = msg.endedAt ?? null;
+const endedReason = msg.endedReason ?? null;
+const durationMinutes = msg.durationMinutes ?? null;
+const durationSeconds =
+  msg.durationSeconds ??
+  (msg.durationMinutes != null ? msg.durationMinutes * 60 : null);
+
+// Output only the fields you care about
+return [
+  {
+    json: {
+      call_id: call.id ?? root?.headers?.['x-call-id'] ?? null,
+      assistant_id: assistant.id ?? call.assistantId ?? null,
+      phone_number_id: phoneNumber.id ?? msg.phoneNumberId ?? null,
+      business_number: phoneNumber.number ?? null,
+      customer_number: customer.number ?? call.customer?.number ?? null,
+
+      // include both UTC and NZ local
+      started_at_utc: startedAtUTC,
+      started_at_nz: toNZTime(startedAtUTC),
+      ended_at_utc: endedAtUTC,
+      ended_at_nz: toNZTime(endedAtUTC),
+
+      ended_reason: endedReason,
+      duration_minutes: durationMinutes != null ? Number(durationMinutes) : null,
+      duration_seconds: durationSeconds != null ? Number(durationSeconds) : null,
+      cost_total: msg.cost ?? msg.costBreakdown?.total ?? null,
+      type: msg.type ?? null,
+      server_messages: assistant.serverMessages ?? null,
+    },
+  },
+];
